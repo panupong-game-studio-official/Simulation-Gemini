@@ -1,34 +1,37 @@
-// main.js
-import { World } from './world.js';
+import { World, TILE_SIZE } from './world.js';
 import { Human } from './human.js';
-import { drawWorld, drawHuman } from './render.js';
 
-const canvas = document.getElementById('worldCanvas');
+const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const world = new World();
+canvas.width = 800; canvas.height = 600;
+
+const myWorld = new World(25, 20);
 let population = [
-    new Human(1, 10, 10, 'M'), // Adam
-    new Human(2, 12, 10, 'F')  // Eve
+    new Human("Adam", 5, 5, "M"),
+    new Human("Eve", 10, 10, "F")
 ];
 
-function update() {
-    // 1. วาดโลก
-    drawWorld(ctx, world);
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 2. จัดการประชากร
-    population.forEach(h => {
-        // AI Logic: เดินหาคู่ หรือ หาไม้
-        h.x += (Math.random() - 0.5) * 0.1;
-        h.y += (Math.random() - 0.5) * 0.1;
-
-        drawHuman(ctx, h);
-    });
-
-    // 3. ระบบสืบพันธุ์ (ถ้าอยู่ใกล้กันและพลังงานเยอะ)
-    if (population.length < 1000) { 
-        // อนาคตใส่ Logic: if(dist(Adam, Eve) < 1) spawnBaby()
+    // 1. วาดโลกบล็อก
+    for (let x = 0; x < myWorld.width; x++) {
+        for (let y = 0; y < myWorld.height; y++) {
+            ctx.fillStyle = myWorld.grid[x][y].color;
+            ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+        }
     }
 
-    requestAnimationFrame(update);
+    // 2. อัปเดตและวาด AI
+    population.forEach(h => {
+        // AI เดินสุ่มแบบช้าๆ
+        if (Math.random() > 0.95) {
+            h.x += Math.round(Math.random() * 2 - 1);
+            h.y += Math.round(Math.random() * 2 - 1);
+        }
+        h.draw(ctx);
+    });
+
+    requestAnimationFrame(gameLoop);
 }
-update();
+gameLoop();
