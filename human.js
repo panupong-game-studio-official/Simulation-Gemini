@@ -1,29 +1,26 @@
+// human.js
 export class Human {
-    constructor(id, name, gender) {
+    constructor(id, x, y, gender, parents = null) {
         this.id = id;
-        this.name = name;
         this.gender = gender;
+        this.x = x;
+        this.y = y;
         this.age = 0;
+        this.isChild = true;
         
-        // --- 🧬 DNA สมจริง 100% ---
-        this.dna = {
-            nationality: this.randomNation(),
-            skin: ["#FFDBAC", "#8D5524", "#C68642"][Math.floor(Math.random()*3)],
-            hairColor: ["#000", "#442211", "#DDAA66"][Math.floor(Math.random()*3)],
-            eyeColor: ["#2E536F", "#3D671D", "#1C1C1C"][Math.floor(Math.random()*4)],
-            eyeSize: 1 + Math.random(),
-            height: 150 + Math.random() * 30
+        // --- 🧬 DNA สมจริง ---
+        this.traits = {
+            skin: parents ? this.mix(parents[0].skin, parents[1].skin) : this.randomColor(),
+            hair: parents ? parents[Math.round(Math.random())].hair : this.randomColor(),
+            nationality: parents ? parents[0].nationality : ["Asian", "European", "African", "Latino"][Math.floor(Math.random()*4)],
+            strength: Math.random() * 100
         };
 
-        // --- 📍 กายภาพและการเคลื่อนที่ ---
-        this.pos = { x: Math.random() * 800, y: Math.random() * 500 };
-        this.target = { x: this.pos.x, y: this.pos.y };
-        this.angle = 0; 
-        this.clothes = { top: "#"+((1<<24)*Math.random()|0).toString(16) };
+        this.inventory = { wood: 0, food: 0 };
+        this.energy = 100;
+        this.target = null;
     }
 
-    randomNation() {
-        const nations = ["Thai", "Japan", "USA", "Brazil", "Norway"];
-        return nations[Math.floor(Math.random() * nations.length)];
-    }
+    randomColor() { return '#' + Math.floor(Math.random()*16777215).toString(16); }
+    mix(c1, c2) { /* ฟังก์ชันผสมสีผิวลูก */ return c1; }
 }
