@@ -1,119 +1,60 @@
+import { LifeManager } from './life.js';
+
 const canvas = document.getElementById('worldCanvas');
 const ctx = canvas.getContext('2d');
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-// ปรับขนาดให้เต็มจอและคมชัด
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
+class World {
+    constructor() {
+        this.time = 0; // 0 - 1440 (นาทีใน 1 วัน)
+        this.day = 1;
+        this.month = 1;
+        this.year = 1;
+        this.season = "Summer";
+        this.ambientLight = 1; // ความสว่างตามเวลา
+        this.lifeManager = new LifeManager();
+    }
 
-const TILE_W = 64; // ความกว้างบล็อก
-const TILE_H = 32; // ความสูงบล็อก
-const MAP_SIZE = 25; // ขนาดแมพ
-
-// ตั้งค่าสี Biome ให้ดูสมจริง
-const COLORS = {
-    grass: { top: "#55a630", side: "#2b9348" },
-    water: { top: "#4895ef", side: "#4361ee" },
-    dirt:  { top: "#795548", side: "#5d4037" },
-    sand:  { top: "#eeef20", side: "#d4d700" }
-};
-
-let map = [];
-
-function initMap() {
-    for (let x = 0; x < MAP_SIZE; x++) {
-        map[x] = [];
-        for (let y = 0; y < MAP_SIZE; y++) {
-            let noise = Math.random();
-            let type = "grass";
-            let height = 0;
-
-            if (noise < 0.1) type = "water";
-            else if (noise > 0.9) { type = "dirt"; height = 15; } // ภูเขาสูงขึ้น
-            else if (noise < 0.2) type = "sand";
-
-            map[x][y] = { type, height };
+    updateTime() {
+        this.time += 2; // ความเร็วเวลา (เพิ่มทีละ 2 นาที)
+        if (this.time >= 1440) {
+            this.time = 0;
+            this.day++;
+            if (this.day > 30) { this.day = 1; this.month++; }
+            if (this.month > 12) { this.month = 1; this.year++; }
+            this.updateSeason();
         }
+        
+        // คำนวณแสงสว่าง (กลางวัน/กลางคืน)
+        // 0-360 มืดมาก, 360-720 สว่างขึ้น, 720-1080 สว่างจ้า, 1080-1440 ค่อยๆ มืด
+        let hour = this.time / 60;
+        if (hour < 6 || hour > 18) this.ambientLight = 0.3; // กลางคืน
+        else if (hour >= 10 && hour <= 15) this.ambientLight = 1.0; // เที่ยง
+        else this.ambientLight = 0.7; // เช้า/เย็น
+    }
+
+    updateSeason() {
+        if (this.month >= 3 && this.month <= 5) this.season = "Summer";
+        else if (this.month >= 6 && this.month <= 8) this.season = "Rainy";
+        else if (this.month >= 9 && this.month <= 11) this.season = "Winter";
+        else this.season = "Dry";
+    }
+
+    render() {
+        // วาดพื้นหลังตามแสง
+        ctx.fillStyle = `rgb(${46 * this.ambientLight}, ${125 * this.ambientLight}, ${50 * this.ambientLight})`; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // แสดงผล UI
+        document.getElementById('clock').innerText = `${Math.floor(this.time/60).toString().padStart(2,'0')}:${(this.time%60).toString().padStart(2,'0')}`;
+        document.getElementById('calendar').innerText = `วันที่ ${this.day} เดือน ${this.month} ปี ${this.year} | ${this.season}`;
+        
+        this.lifeManager.updateAndDraw(ctx, this.ambientLight);
+        requestAnimationFrame(() => this.render());
     }
 }
 
-function drawTile(x, y, type, heightOffset) {
-    const screenX = (x - y) * (TILE_W / 2) + canvas.width / 2;
-    const screenY = (x + y) * (TILE_H / 2) + canvas.height / 4 - heightOffset;
-
-    const colors = COLORS[type];
-
-    // 1. วาดด้านข้าง (Left Face) - สร้างมิติความหนา
-    ctx.beginPath();
-    ctx.moveTo(screenX - TILE_W / 2, screenY);
-    ctx.lineTo(screenX, screenY + TILE_H / 2);
-    ctx.lineTo(screenX, screenY + TILE_H / 2 + 10);
-    ctx.lineTo(screenX - TILE_W / 2, screenY + 10);
-    ctx.fillStyle = colors.side;
-    ctx.fill();
-
-    // 2. วาดด้านข้าง (Right Face)
-    ctx.beginPath();
-    ctx.moveTo(screenX + TILE_W / 2, screenY);
-    ctx.lineTo(screenX, screenY + TILE_H / 2);
-    ctx.lineTo(screenX, screenY + TILE_H / 2 + 10);
-    ctx.lineTo(screenX + TILE_W / 2, screenY + 10);
-    ctx.fillStyle = shadeColor(colors.side, -10);
-    ctx.fill();
-
-    // 3. วาดด้านบน (Top Face)
-    ctx.beginPath();
-    ctx.moveTo(screenX, screenY);
-    ctx.lineTo(screenX + TILE_W / 2, screenY - TILE_H / 2);
-    ctx.lineTo(screenX + TILE_W, screenY); // ปรับตำแหน่งเล็กน้อยเพื่อความเป๊ะ
-    ctx.moveTo(screenX, screenY);
-    ctx.lineTo(screenX + TILE_W / 2, screenY + TILE_H / 2);
-    ctx.lineTo(screenX + TILE_W, screenY);
-    
-    // วาดรูปสี่เหลี่ยมข้าวหลามตัดด้านบน
-    ctx.beginPath();
-    ctx.moveTo(screenX, screenY);
-    ctx.lineTo(screenX + TILE_W / 2, screenY - TILE_H / 2);
-    ctx.lineTo(screenX + TILE_W, screenY);
-    ctx.lineTo(screenX + TILE_W / 2, screenY + TILE_H / 2);
-    
-    // แก้ไขการวาด Top Face ใหม่ให้สมบูรณ์
-    ctx.beginPath();
-    ctx.moveTo(screenX, screenY);
-    ctx.lineTo(screenX + TILE_W / 2, screenY - TILE_H / 2);
-    ctx.lineTo(screenX + TILE_W, screenY);
-    ctx.lineTo(screenX + TILE_W / 2, screenY + TILE_H / 2);
-    ctx.closePath();
-    ctx.fillStyle = colors.top;
-    ctx.fill();
-    
-    // ใส่เส้นขอบบางๆ ให้ดูคม
-    ctx.strokeStyle = "rgba(0,0,0,0.05)";
-    ctx.stroke();
-}
-
-// ฟังก์ชันช่วยปรับความเข้มสี
-function shadeColor(color, percent) {
-    let num = parseInt(color.replace("#",""),16), amt = Math.round(2.55 * percent),
-    R = (num >> 16) + amt, G = (num >> 8 & 0x00FF) + amt, B = (num & 0x0000FF) + amt;
-    return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
-}
-
-function render() {
-    ctx.fillStyle = "#1a1a1a"; // พื้นหลังมืดให้งานดูเด่น
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    for (let x = 0; x < MAP_SIZE; x++) {
-        for (let y = 0; y < MAP_SIZE; y++) {
-            const tile = map[x][y];
-            drawTile(x, y, tile.type, tile.height);
-        }
-    }
-    requestAnimationFrame(render);
-}
-
-initMap();
-render();
+const myWorld = new World();
+setInterval(() => myWorld.updateTime(), 100); // อัปเดตเวลาทุก 0.1 วินาที
+myWorld.render();
