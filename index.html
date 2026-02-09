@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Simulation AI 2D</title>
+    <style>
+        body { margin: 0; background: #222; color: white; font-family: sans-serif; overflow: hidden; }
+        canvas { display: block; background: #4a7c44; image-rendering: pixelated; }
+        #ui-layer { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        .stats-card { background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; margin-bottom: 5px; font-size: 12px; }
+        .bar { width: 100px; height: 8px; background: #444; margin: 2px 0; border-radius: 4px; }
+        .fill { height: 100%; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div id="ui-layer"></div>
+<canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiLayer = document.getElementById('ui-layer');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+// --- ระบบข้อมูลเบื้องต้น ---
+const world = {
+    gravity: 0,
+    time: 0,
+    locations: [
+        { name: "ร้านอาหาร (Restaurant)", x: 200, y: 200, color: "#e67e22" },
+        { name: "บ้าน (Home)", x: 600, y: 400, color: "#3498db" }
+    ]
+};
+
+class NPC {
+    constructor(config) {
+        this.firstName = config.firstName;
+        this.lastName = config.lastName;
+        this.gender = config.gender; // Male / Female
+        this.age = config.age;
+        this.nationality = config.nationality;
+        
+        // รูปลักษณ์ (Visuals)
+        this.skinColor = config.skinColor;
+        this.hairStyle = config.hairStyle; // Short / Bob
+        this.hairColor = config.hairColor;
+        this.eyeColor = config.eyeColor;
+        this.height = config.height;
+        this.outfitColor = config.outfitColor;
+
+        // ตำแหน่ง
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.vx = 0;
+        this.vy = 0;
+
+        // หลอดสถานะ (0-100)
+        this.stats = {
+            hp: 100,
+            hunger: Math.random() * 50 + 20,
+            thirst: Math.random() * 50 + 20,
+            energy: 100,
+            bladder: 0,
+            stress: 0,
+            happiness: 100,
+            sleepy: 0
+        };
+
+        this.thought = "ฉันกำลังเดินเล่น...";
+        this.memory = [];
+    }
+
+    update() {
+        // จำลองการใช้ชีวิต (Logic)
+        this.stats.hunger += 0.02;
+        this.stats.thirst += 0.03;
+        this.stats.sleepy += 0.01;
+        
+        // AI Decision (ความฉลาด)
+        if (this.stats.hunger > 70) {
+            this.moveTo(world.locations[0]); // ไปร้านอาหาร
+            this.thought = "หิวจัง... ต้องไปหาอะไรกินที่ " + world.locations[0].name;
+        } else if (this.stats.sleepy > 80) {
+            this.moveTo(world.locations[1]); // ไปนอน
+            this.thought = "ง่วงนอนจังเลย...";
+        } else {
+            this.wander();
+        }
+
+        // ข้อจำกัดสถานะ
+        if (this.stats.hunger >= 100) this.stats.hp -= 0.1;
+    }
+
+    moveTo(target) {
+        let dx = target.x - this.x;
+        let dy = target.y - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist > 5) {
+            this.x += (dx/dist) * 2;
+            this.y += (dy/dist) * 2;
+        } else {
+            // เมื่อถึงเป้าหมาย
+            if (this.stats.hunger > 70) this.stats.hunger = 0;
+            if (this.stats.sleepy > 80) this.stats.sleepy = 0;
+        }
+    }
+
+    wander() {
+        this.x += (Math.random() - 0.5) * 1;
+        this.y += (Math.random() - 0.5) * 1;
+    }
+
+    draw() {
+        // วาดตัวละคร 2D (สไตล์ WorldBox)
+        ctx.save();
+        ctx.translate(this.x, this.y);
+
+        // ร่างกาย (Body)
+        ctx.fillStyle = this.skinColor;
+        ctx.fillRect(-10, -this.height, 20, this.height);
+
+        // ชุด (Outfit)
+        ctx.fillStyle = this.outfitColor;
+        ctx.fillRect(-10, -this.height + 15, 20, this.height - 15);
+
+        // หัว (Head)
+        ctx.fillStyle = this.skinColor;
+        ctx.beginPath();
+        ctx.arc(0, -this.height - 5, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ทรงผม
+        ctx.fillStyle = this.hairColor;
+        if (this.hairStyle === "Bob") {
+            ctx.fillRect(-12, -this.height - 12, 24, 15); // ผมบ๊อบคลุมข้าง
+        } else {
+            ctx.fillRect(-10, -this.height - 15, 20, 8); // ผมสั้น
+        }
+
+        // หน้าอก (ถ้าเป็นผู้หญิง)
+        if (this.gender === "Female") {
+            ctx.fillStyle = this.outfitColor;
+            ctx.beginPath();
+            ctx.arc(-5, -this.height + 20, 4, 0, Math.PI * 2);
+            ctx.arc(5, -this.height + 20, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ตา
+        ctx.fillStyle = this.eyeColor;
+        ctx.fillRect(-5, -this.height - 7, 2, 2);
+        ctx.fillRect(3, -this.height - 7, 2, 2);
+
+        // ชื่อ
+        ctx.fillStyle = "white";
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(this.firstName, 0, -this.height - 25);
+
+        // ข้อความความคิด (Speech Bubble)
+        ctx.fillStyle = "rgba(255,255,255,0.8)";
+        ctx.fillRect(-50, -this.height - 60, 100, 20);
+        ctx.fillStyle = "black";
+        ctx.font = "10px Tahoma";
+        ctx.fillText(this.thought, 0, -this.height - 45);
+
+        ctx.restore();
+    }
+}
+
+// --- สร้างตัวละคร 2 ตัวตามสั่ง ---
+const citizens = [
+    new NPC({
+        firstName: "สมชาย", lastName: "ใจดี", gender: "Male", age: 25, 
+        nationality: "Thai", skinColor: "#ffdbac", hairStyle: "Short", 
+        hairColor: "#222", eyeColor: "brown", height: 50, outfitColor: "#2980b9"
+    }),
+    new NPC({
+        firstName: "Jane", lastName: "Smith", gender: "Female", age: 22, 
+        nationality: "American", skinColor: "#f1c27d", hairStyle: "Bob", 
+        hairColor: "#e67e22", eyeColor: "blue", height: 45, outfitColor: "#e91e63"
+    })
+];
+
+function updateUI() {
+    uiLayer.innerHTML = citizens.map(c => `
+        <div class="stats-card">
+            <b>${c.firstName} ${c.lastName} (${c.gender})</b><br>
+            อายุ: ${c.age} | สัญชาติ: ${c.nationality}<br>
+            หิว: <div class="bar"><div class="fill" style="width:${c.stats.hunger}%; background:orange"></div></div>
+            น้ำ: <div class="bar"><div class="fill" style="width:${c.stats.thirst}%; background:blue"></div></div>
+            ง่วง: <div class="bar"><div class="fill" style="width:${c.stats.sleepy}%; background:purple"></div></div>
+            ความสุข: <div class="bar"><div class="fill" style="width:${c.stats.happiness}%; background:green"></div></div>
+        </div>
+    `).join('');
+}
+
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // วาดสถานที่
+    world.locations.forEach(loc => {
+        ctx.fillStyle = loc.color;
+        ctx.fillRect(loc.x - 30, loc.y - 30, 60, 60);
+        ctx.fillStyle = "white";
+        ctx.fillText(loc.name, loc.x, loc.y + 50);
+    });
+
+    citizens.forEach(c => {
+        c.update();
+        c.draw();
+    });
+
+    updateUI();
+    requestAnimationFrame(loop);
+}
+
+loop();
+</script>
+</body>
+</html>
