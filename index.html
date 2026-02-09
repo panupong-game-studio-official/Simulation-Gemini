@@ -2,20 +2,18 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Genesis World: Digital Twin</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Genesis: Minecraft AI Edition</title>
+    <style>
+        body { background: #333; color: white; margin: 0; text-align: center; font-family: sans-serif; }
+        canvas { border: 4px solid #000; background: #4caf50; image-rendering: pixelated; } /* ทำให้ภาพดูเป็นพิกเซลชัดๆ */
+        .status { position: absolute; top: 10; left: 10; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 5px; }
+    </style>
 </head>
 <body>
-    <div id="ui-layer">
-        <div class="stats-panel">
-            <h1>🌍 GENESIS</h1>
-            <p>ประชากร: <span id="pop-count">0</span> | ปีที่: <span id="year">1</span></p>
-            <div id="log-console">--- ยินดีต้อนรับสู่โลกใหม่ ---</div>
-        </div>
+    <div class="status">
+        <b>🌍 ประชากร:</b> <span id="pop">2</span> | <b>🪵 ไม้:</b> <span id="wood">0</span>
     </div>
-    <canvas id="worldCanvas"></canvas>
-
+    <canvas id="gameCanvas"></canvas>
     <script type="module" src="main.js"></script>
 </body>
 </html>
