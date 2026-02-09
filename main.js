@@ -1,71 +1,34 @@
+// main.js
+import { World } from './world.js';
 import { Human } from './human.js';
-import { Brain } from './brain.js';
+import { drawWorld, drawHuman } from './render.js';
 
 const canvas = document.getElementById('worldCanvas');
 const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
+const world = new World();
 let population = [
-    new Human(1, "Adam", "Male"),
-    new Human(2, "Eve", "Female")
+    new Human(1, 10, 10, 'M'), // Adam
+    new Human(2, 12, 10, 'F')  // Eve
 ];
 
-function drawHuman(h) {
-    const { x, y } = h.pos;
-    const walk = Math.sin(h.angle) * 5;
-
-    // วาดเงา
-    ctx.fillStyle = "rgba(0,0,0,0.1)";
-    ctx.beginPath(); ctx.ellipse(x, y+15, 10, 5, 0, 0, Math.PI*2); ctx.fill();
-
-    // วาดลำตัวและมือเท้า
-    ctx.fillStyle = h.clothes.top;
-    ctx.fillRect(x - 8, y - 10, 16, 20); // เสื้อ
-    ctx.fillStyle = h.dna.skin;
-    ctx.fillRect(x - 12, y - 5 + walk, 4, 8); // แขนซ้าย
-    ctx.fillRect(x + 8, y - 5 - walk, 4, 8);  // แขนขวา
-
-    // วาดหัว อวัยวะใบหน้า
-    ctx.beginPath(); ctx.arc(x, y - 20, 10, 0, Math.PI * 2); ctx.fill();
-    
-    // ตาและสีดวงตา
-    ctx.fillStyle = "white"; ctx.fillRect(x-5, y-22, 3, 3); ctx.fillRect(x+2, y-22, 3, 3);
-    ctx.fillStyle = h.dna.eyeColor; ctx.fillRect(x-4, y-21, 1.5, 1.5); ctx.fillRect(x+3, y-21, 1.5, 1.5);
-    
-    // ทรงผม
-    ctx.fillStyle = h.dna.hairColor; ctx.fillRect(x-10, y-30, 20, 7);
-
-    // ชื่อและสัญชาติ
-    ctx.fillStyle = "white";
-    ctx.font = "12px Arial";
-    ctx.fillText(`${h.name} (${h.dna.nationality})`, x - 20, y - 40);
-}
-
 function update() {
-    ctx.fillStyle = "#2e7d32"; // พื้นหญ้า
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // 1. วาดโลก
+    drawWorld(ctx, world);
 
+    // 2. จัดการประชากร
     population.forEach(h => {
-        const action = Brain.decide(h);
-        
-        // ระบบเคลื่อนที่
-        let dx = h.target.x - h.pos.x;
-        let dy = h.target.y - h.pos.y;
-        let dist = Math.sqrt(dx*dx + dy*dy);
+        // AI Logic: เดินหาคู่ หรือ หาไม้
+        h.x += (Math.random() - 0.5) * 0.1;
+        h.y += (Math.random() - 0.5) * 0.1;
 
-        if (dist > 5) {
-            h.pos.x += (dx / dist) * 1.5;
-            h.pos.y += (dy / dist) * 1.5;
-            h.angle += 0.2;
-        } else {
-            h.target = { x: Math.random() * canvas.width, y: Math.random() * canvas.height };
-        }
-
-        drawHuman(h);
+        drawHuman(ctx, h);
     });
+
+    // 3. ระบบสืบพันธุ์ (ถ้าอยู่ใกล้กันและพลังงานเยอะ)
+    if (population.length < 1000) { 
+        // อนาคตใส่ Logic: if(dist(Adam, Eve) < 1) spawnBaby()
+    }
 
     requestAnimationFrame(update);
 }
-
 update();
