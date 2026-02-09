@@ -1,0 +1,23 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* ห้ามมี Scrollbar ของ Browser */
+    background: #222;
+}
+
+canvas {
+    display: block;
+}
+
+.status {
+    position: fixed; /* ให้อยู่คงที่มุมซ้าย */
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 8px;
+    z-index: 100;
+    pointer-events: none; /* เพื่อให้เราคลิกผ่าน UI ไปสั่งการในเกมได้ */
+}
